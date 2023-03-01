@@ -1,0 +1,31 @@
+{% extends "admin/change_list.html" %}
+
+
+{% block object-tools %}
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <div class="row">
+        <div class="col-md-6 col-xs-12">
+          <div class="x_panel">
+            <div class="x_title">
+              <h2>Excel Music Upload</h2>
+
+              <div class="clearfix"></div>
+            </div>
+            <div class="x_content">
+
+              <div class="col-md-8 col-sm-12 col-xs-12 form-group">
+
+              </div>
+
+                    <input type="file" name="musicfile" class="form-control">
+                             <button type="submit" class="btn btn-success" >Upload</button>
+                            <br/>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+  </form>
+
+                {% endblock %}

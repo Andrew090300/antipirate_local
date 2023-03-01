@@ -1,0 +1,14 @@
+{% extends 'admin/change_form.html' %}
+
+{% block submit_buttons_bottom %}
+    {{ block.super }}
+    <div class="submit-row">
+            <input type="submit" onclick="NewWindowFunction()" value="Send Report" name="_report">
+    </div>
+
+<!--<script>-->
+<!--function NewWindowFunction() {-->
+<!--  window.open("https://reportcontent.google.com/forms/dmca_search?hl=en&utm_source=wmx&utm_medium=deprecation-pane&utm_content=legal-removal-request", '_blank');-->
+<!--}-->
+<!--</script>-->
+{% endblock %}
