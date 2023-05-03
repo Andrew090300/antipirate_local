@@ -24,5 +24,8 @@ google_domains = ('https://www.google.',
                   'https://appstore.',
                   'https://music.youtube.',
                   'https://www.imdb.com',
-                  'https://www.stackoverflow.',)
+                  'https://www.stackoverflow.',
+                  'https://www.junodownload.com',
+                  'https://geo-samples.beatport.',
+                  'https://www.facebook.com',)
 

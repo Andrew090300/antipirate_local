@@ -10,7 +10,7 @@ from Antipirate_ver_2.links.services import LinksService
 from Antipirate_ver_2.music.models import MusicModel
 
 
-@admin.action(description='Fully automated process', )
+@admin.action(description='Google parsing with automated analysis', )
 def full_process_automated(self, request, queryset):
     if not Core.objects.exists():
         Core.objects.create()
@@ -21,10 +21,11 @@ def full_process_automated(self, request, queryset):
             core.save(update_fields=('in_process',))
             print("Starting to parse google")
             songs_list = queryset.values_list('title', flat=True).distinct()
-            phrase = Core.objects.first().additional_phrase
+            phrase = Core.objects.first().additional_phrase or ''
             for song in songs_list:
+                query = f'{song} {phrase}' if phrase else f'{song}'
                 song_model = MusicModel.objects.get(title=song)
-                raw_links = set(GoogleParser.scrape_google(query=f'{song} {phrase}'))
+                raw_links = set(GoogleParser.scrape_google(query=query))
                 raw_audio = LinksService.search_music_auto(raw_links)
                 result = LinksService.compare_music_auto(song_model, raw_audio)
                 LinksService.links_to_db_auto(result, song=song_model)
@@ -50,7 +51,8 @@ def search_google(self, request, queryset):
             phrase = Core.objects.first().additional_phrase
             for song in songs_list:
                 song_model = MusicModel.objects.get(title=song)
-                LinksService.links_to_db(GoogleParser.scrape_google(query=f'{song} {phrase}'), song=song_model)
+                query = f'{song} {phrase}' if phrase else f'{song}'
+                LinksService.links_to_db(GoogleParser.scrape_google(query=query), song=song_model)
             print("Finished")
         finally:
             core.in_process = False
@@ -68,7 +70,9 @@ class MusicModelAdmin(admin.ModelAdmin):
     )
 
     change_list_template = "music/music_admin.html"
-    actions = (search_google, full_process_automated,)
+    actions = (search_google,
+               # full_process_automated,
+               )
 
     def changelist_view(self, request, extra_context=None):
 

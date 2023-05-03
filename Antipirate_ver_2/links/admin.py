@@ -1,11 +1,11 @@
 import asyncio
 import difflib
-from pathlib import Path
-from subprocess import CalledProcessError
 import requests
+from pathlib import Path
+from selenium.webdriver import Keys
+from subprocess import CalledProcessError
 from django.contrib import admin
 from django.http import HttpResponseRedirect
-
 from Antipirate_ver_2.core.models import Core
 from Antipirate_ver_2.links.correlation import correlate
 from Antipirate_ver_2.links.models import ParsedLink
@@ -28,7 +28,7 @@ def search_music(self, request, queryset):
                 'domain', flat=True).distinct())
             links = list(queryset.values_list('link', flat=True).distinct())
             print(f'Total number of Google results to check: {len(links)}')
-            music = asyncio.run(main_parser.main_process(links, deep=False, white_list=whitelist))
+            music = asyncio.run(main_parser.main_process(links, deep=False))
             for obj in queryset:
                 obj.checked = True
                 if music.get(obj.link):
@@ -124,16 +124,18 @@ class ParsedLinkAdmin(admin.ModelAdmin):
             import requests
 
             options = uc.ChromeOptions()
+            userdatadir = '~/.config/google-chrome/Profile 7'
+            options.add_argument(f"--user-data-dir={userdatadir}")
             options.arguments.extend(["--no-sandbox", "--disable-setuid-sandbox"])
-            driver = uc.Chrome(options,
+            driver = uc.Chrome(options, headless=False,
                                executable_path="/home/andrew/PycharmProjects/pythonProject1/driver/chromedriver")
-            api_str = 'http://2captcha.com/in.php?key=7c87f912b1f133d786d65f5b5e0260c1&method=userrecaptcha&googlekey=6LeVK0AhAAAAAAM8ccCAZcaNBQbJQ-iZiZQxyG4h&json=1&pageurl=https://reportcontent.google.com/forms/dmca_search?hl=en&utm_source=wmx&utm_medium=deprecation-pane&utm_content=legal-removal-request'
+            api_str = 'http://2captcha.com/in.php?key=2d426bb5162a1e697572a5e8c3126f2e&method=userrecaptcha&googlekey=6LeVK0AhAAAAAAM8ccCAZcaNBQbJQ-iZiZQxyG4h&json=1&pageurl=https://reportcontent.google.com/forms/dmca_search?hl=en&utm_source=wmx&utm_medium=deprecation-pane&utm_content=legal-removal-request'
 
             def api_call_loop(api_response):
                 response = None
                 while not response or not response.json()['status']:
                     response = requests.get(
-                        f'http://2captcha.com/res.php?key=7c87f912b1f133d786d65f5b5e0260c1&action=get&json=1&id={api_response}')
+                        f'http://2captcha.com/res.php?key=2d426bb5162a1e697572a5e8c3126f2e&action=get&json=1&id={api_response}')
                     if not response.json()['status']:
                         print(f'{response.json()} ... solving Captcha')
                         time.sleep(10)
@@ -141,30 +143,29 @@ class ParsedLinkAdmin(admin.ModelAdmin):
                 return response.json()
 
             try:
-                driver.get('https://accounts.google.com/servicelogin')
-                time.sleep(0.05)
-
-                driver.maximize_window()
-
-                time.sleep(0.05)
-                email_form = WebDriverWait(driver, 20).until(
-                    expected_conditions.element_to_be_clickable((By.ID, "identifierId")))
-                email_form.send_keys('plsv.test@gmail.com')
-                time.sleep(0.05)
-                next_button = driver.find_element(By.XPATH, '//*[@id="identifierNext"]/div/button/span')
-                next_button.click()
-
-                time.sleep(0.05)
-                WebDriverWait(driver, 20).until(expected_conditions.element_to_be_clickable((By.NAME, "Passwd")))
-                password_form = driver.find_element(By.NAME, 'Passwd')
-                password_form.send_keys('123aaa123!!!')
-                time.sleep(0.05)
-
-                next_button = driver.find_element(By.XPATH, '//*[@id="passwordNext"]/div/button/span')
-                next_button.click()
-
-                time.sleep(2)
-
+                # driver.get('https://accounts.google.com/servicelogin')
+                # time.sleep(0.05)
+                #
+                # driver.maximize_window()
+                #
+                # time.sleep(0.05)
+                # email_form = WebDriverWait(driver, 20).until(
+                #     expected_conditions.element_to_be_clickable((By.ID, "identifierId")))
+                # email_form.send_keys('elsp.antipirate@gmail.com')
+                # time.sleep(0.05)
+                # next_button = driver.find_element(By.XPATH, '//*[@id="identifierNext"]/div/button/span')
+                # next_button.click()
+                #
+                # time.sleep(0.05)
+                # WebDriverWait(driver, 20).until(expected_conditions.element_to_be_clickable((By.NAME, "Passwd")))
+                # password_form = driver.find_element(By.NAME, 'Passwd')
+                # password_form.send_keys('legalmusic23')
+                # time.sleep(0.05)
+                #
+                # next_button = driver.find_element(By.XPATH, '//*[@id="passwordNext"]/div/button/span')
+                # next_button.click()
+                #
+                # time.sleep(2)
                 driver.get('https://www.google.com/webmasters/tools/legal-removal-request?hl=en&pid=0&complaint_type=1')
                 first_name = WebDriverWait(driver, 20).until(expected_conditions.presence_of_element_located((By.XPATH,
                                                                                                               '/html/body/div[1]/root/div/main/chip-form/div/span/gdf-form/form/gdf-container[4]/div/div[2]/gdf-component[1]/gdf-text-input/material-input/label/input')))
@@ -199,13 +200,19 @@ class ParsedLinkAdmin(admin.ModelAdmin):
                 text_area_2 = driver.find_element(By.XPATH,
                                                   '/html/body/div[1]/root/div/main/chip-form/div/span/gdf-form/form/gdf-container[6]/div/div[2]/gdf-container[1]/div/div[2]/gdf-container[1]/div/div[2]/gdf-container[2]/div/div[2]/gdf-component/gdf-textarea/material-input/label/span[2]/textarea')
                 driver.execute_script('arguments[0].scrollIntoView(true);', text_area_2)
-                text_area_2.send_keys(f'{obj.music.link}')
+                #text_area_2.send_keys(f'{obj.music.link}')
+                driver.execute_script(f"arguments[0].value = '{obj.music.link}'", text_area_2)
+                text_area_2.send_keys(Keys.SPACE)
+                text_area_2.send_keys(Keys.BACK_SPACE)
                 time.sleep(0.05)
 
                 text_area_3 = driver.find_element(By.XPATH,
                                                   '/html/body/div[1]/root/div/main/chip-form/div/span/gdf-form/form/gdf-container[6]/div/div[2]/gdf-container[1]/div/div[2]/gdf-container[2]/div/div[2]/gdf-container/div/div[2]/gdf-component/gdf-textarea/material-input/label/span[2]/textarea')
                 driver.execute_script('arguments[0].scrollIntoView(true);', text_area_3)
-                text_area_3.send_keys(f'{obj.link}')
+                #text_area_3.send_keys(f'{obj.link}')
+                driver.execute_script(f"arguments[0].value = '{obj.link}'", text_area_3)
+                text_area_3.send_keys(Keys.SPACE)
+                text_area_3.send_keys(Keys.BACK_SPACE)
                 time.sleep(0.05)
 
                 consents = (
@@ -229,25 +236,31 @@ class ParsedLinkAdmin(admin.ModelAdmin):
 
                 signature = driver.find_element(By.XPATH,
                                                 '/html/body/div[1]/root/div/main/chip-form/div/span/gdf-form/form/gdf-container[8]/div/div[2]/gdf-component[2]/gdf-text-input/material-input/label/input')
-                signature.send_keys('Joe Doe')
+                signature.send_keys('Viacheslav Sen')
 
                 api_call = requests.get(api_str)
                 time.sleep(1)
                 print(api_call.json())
                 api_response_captcha_solver = api_call_loop(api_call.json()["request"])
+                api_response_captcha_solver = api_response_captcha_solver["request"]
 
                 driver.execute_script('document.getElementById("g-recaptcha-response").removeAttribute("style");')
                 time.sleep(0.05)
                 driver.execute_script(
-                    f'document.getElementById("g-recaptcha-response").innerHTML = {api_response_captcha_solver};')
+                    f'document.getElementById("g-recaptcha-response").innerHTML = "{api_response_captcha_solver}";')
                 time.sleep(0.05)
                 try:
-                    driver.execute_script(f'onRecaptcha({api_response_captcha_solver});')
+                    driver.execute_script(f'onRecaptcha("{api_response_captcha_solver}");')
                     print("Captcha solved")
                 except Exception:
                     driver.execute_script(f'onRecaptcha();')
 
-                time.sleep(10)
+                time.sleep(1)
+                driver.execute_script("window.focus();")
+                button = driver.find_element(By.XPATH, '/html/body/div[1]/root/div/main/chip-form/div/span/div/button')
+                driver.execute_script("arguments[0].removeAttribute('disabled')", button)
+
+                time.sleep(40)
 
             finally:
                 driver.quit()

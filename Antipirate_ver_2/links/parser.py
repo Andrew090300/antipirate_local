@@ -14,9 +14,10 @@ from bs4 import BeautifulSoup, SoupStrainer
 from urllib.parse import urlencode, urljoin
 from requests import Response, RequestException
 from requests_html import HTMLSession
-
 from Antipirate_ver_2.core.models import Core
 from Antipirate_ver_2.utils import user_agent
+from fake_useragent import UserAgent
+
 from Antipirate_ver_2.utils.unwanted_domains import google_domains
 from Antipirate_ver_2.whitelist.models import WhiteListDomain
 
@@ -25,14 +26,16 @@ class GoogleParser:
     @staticmethod
     def get_source(payload: dict) -> Response:
         params = urlencode(payload)
-        headers = {'User-Agent': random.choice(user_agent.user_agent)}
         url = f'https://www.google.com/search?{params}'
-
+        _user_agent = UserAgent()
+        headers = {'User-Agent': _user_agent.random}
         try:
             session = HTMLSession()
-            time.sleep(1)
+            time.sleep(random.randint(1, 3))
 
-            response = session.get(url=url, headers=headers)
+            response = session.get(url=url,
+                                  # headers=headers
+                                   )
             return response
 
         except RequestException as e:
@@ -44,19 +47,28 @@ class GoogleParser:
         pages = 10 if pages is None else pages
         payload = {
             'q': query,
-            # 'uule': 'code',  # This is location code. Will figure out later
+         #   'gl': 'ru'
         }
-
+        languages = ['en', 'fr', 'pl', 'de', 'ru', 'ua']
         result_links = []
         counter = 1
+       # for lang in languages:
         for count in range(0, pages * 10, 10):
             print(f'Google Page {counter} is processed')
+            print(count)
+            # payload = {
+            #     'q': query,
+            #     'hl': lang
+            # }
             counter += 1
             payload['start'] = count  # One page is equal to 10 google results.
+            print(payload)
+
             time.sleep(0.01)
             response = GoogleParser.get_source(payload)
             try:
                 links = list(response.html.absolute_links)
+                print(links)
                 for url in links[:]:
                     if url.startswith(google_domains + tuple(WhiteListDomain.objects.values_list(
                             'domain', flat=True).distinct())):
@@ -64,7 +76,8 @@ class GoogleParser:
                 result_links.extend(links)
             except AttributeError as e:
                 print(e)
-        return result_links
+           # print(result_links)
+        return list(set(result_links))
 
 
 class AsyncParser:
@@ -75,6 +88,8 @@ class AsyncParser:
         self.counter = 0  # To be removed in production
         self.music_count = 0
         self.all_music = {}
+        self.whitelist = google_domains + tuple(WhiteListDomain.objects.values_list(
+                            'domain', flat=True).distinct())
         self.performance_time = time.perf_counter()  # To be removed in production
 
     def get_data(self, html_text: bytes, parsed_url: str, deep) -> list:
@@ -86,7 +101,7 @@ class AsyncParser:
             for link in link_obj:
                 try:
                     href = link.attrs['href'].strip()
-                    if href and not href.startswith(('#', 'javascript:', 'tel', 'mailto:')):
+                    if href and not href.startswith(('#', 'javascript:', 'tel', 'mailto:') + self.whitelist):
                         yield href
                 except KeyError:
                     pass
@@ -140,11 +155,11 @@ class AsyncParser:
                         asyncio.exceptions.TimeoutError) as e:
                     print(e)
 
-    async def main_process(self, array: list, deep: bool, white_list: tuple) -> dict:
+    async def main_process(self, array: list, deep: bool) -> dict:
         tasks = []
         semaphore = asyncio.Semaphore(value=10)
         for item in array:
-            if not item.startswith(white_list) and not item[-4:] == ':443' and item.startswith('http'):
+            if not item.startswith(self.whitelist) and not item[-4:] == ':443' and item.startswith('http'):
                 tasks.append(self.get_links(item, semaphore, deep))
         try:
             await asyncio.wait_for(asyncio.gather(*tasks), 1000)

@@ -16,7 +16,7 @@ class CoreAdmin(admin.ModelAdmin):
     readonly_fields = (
         "title",
         "is_running",
-        "in_process",
+      #  "in_process",
     )
     change_list_template = "core/core_admin.html"
 

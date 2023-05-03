@@ -49,11 +49,9 @@ class LinksService:
     def search_music_auto(array: set):
         main_parser = AsyncParser()
         if main_parser:
-            whitelist = google_domains + tuple(WhiteListDomain.objects.values_list(
-                'domain', flat=True).distinct())
             links = list(array)
             print(f'Total number of Google results to check: {len(links)}')
-            music = asyncio.run(main_parser.main_process(links, deep=False, white_list=whitelist))
+            music = asyncio.run(main_parser.main_process(links, deep=False))
             return music
 
     @staticmethod
