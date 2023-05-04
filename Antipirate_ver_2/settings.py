@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     'Antipirate_ver_2.whitelist',
     'Antipirate_ver_2.links',
     'Antipirate_ver_2.music',
+    'Antipirate_ver_2.reports',
 ]
 
 MIDDLEWARE = [

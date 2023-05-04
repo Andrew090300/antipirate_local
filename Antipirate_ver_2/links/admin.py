@@ -2,7 +2,6 @@ import asyncio
 import difflib
 import requests
 from pathlib import Path
-from selenium.webdriver import Keys
 from subprocess import CalledProcessError
 from django.contrib import admin
 from django.http import HttpResponseRedirect
@@ -14,6 +13,8 @@ from Antipirate_ver_2.links.services import LinksService
 from Antipirate_ver_2.utils.converter import convert_to_mp3
 from Antipirate_ver_2.utils.unwanted_domains import google_domains
 from Antipirate_ver_2.whitelist.models import WhiteListDomain
+from Antipirate_ver_2.links.send_report import send_report_selenium
+from Antipirate_ver_2.reports.models import ReportedLinkModel
 
 
 @admin.action(description='Check links for music', )
@@ -102,6 +103,26 @@ def compare_music(self, request, queryset):
         print("Process finished")
 
 
+@admin.action(description='Send reports to Google', )
+def send_reports(self, request, queryset):
+    core = Core.objects.first()
+    if not core.in_process:
+        try:
+            core.in_process = True
+            core.save(update_fields=('in_process',))
+
+            for obj in queryset:
+                send_report_selenium(obj)
+                ReportedLinkModel.objects.create(link=obj.link, domain=obj.domain, music=obj.music)
+                obj.delete()
+
+        finally:
+            core.in_process = False
+            core.save(update_fields=('in_process',))
+    else:
+        print("Program is already running")
+
+
 @admin.register(ParsedLink)
 class ParsedLinkAdmin(admin.ModelAdmin):
     list_display = (
@@ -116,159 +137,14 @@ class ParsedLinkAdmin(admin.ModelAdmin):
     def response_change(self, request, obj):
         if "_report" in request.POST:
 
-            import time
-            from selenium.webdriver.support import expected_conditions
-            from selenium.webdriver.support.wait import WebDriverWait
-            import undetected_chromedriver as uc
-            from selenium.webdriver.common.by import By
-            import requests
-
-            options = uc.ChromeOptions()
-            userdatadir = '~/.config/google-chrome/Profile 7'
-            options.add_argument(f"--user-data-dir={userdatadir}")
-            options.arguments.extend(["--no-sandbox", "--disable-setuid-sandbox"])
-            driver = uc.Chrome(options, headless=False,
-                               executable_path="/home/andrew/PycharmProjects/pythonProject1/driver/chromedriver")
-            api_str = 'http://2captcha.com/in.php?key=2d426bb5162a1e697572a5e8c3126f2e&method=userrecaptcha&googlekey=6LeVK0AhAAAAAAM8ccCAZcaNBQbJQ-iZiZQxyG4h&json=1&pageurl=https://reportcontent.google.com/forms/dmca_search?hl=en&utm_source=wmx&utm_medium=deprecation-pane&utm_content=legal-removal-request'
-
-            def api_call_loop(api_response):
-                response = None
-                while not response or not response.json()['status']:
-                    response = requests.get(
-                        f'http://2captcha.com/res.php?key=2d426bb5162a1e697572a5e8c3126f2e&action=get&json=1&id={api_response}')
-                    if not response.json()['status']:
-                        print(f'{response.json()} ... solving Captcha')
-                        time.sleep(10)
-                print(str(response.json()))
-                return response.json()
-
-            try:
-                # driver.get('https://accounts.google.com/servicelogin')
-                # time.sleep(0.05)
-                #
-                # driver.maximize_window()
-                #
-                # time.sleep(0.05)
-                # email_form = WebDriverWait(driver, 20).until(
-                #     expected_conditions.element_to_be_clickable((By.ID, "identifierId")))
-                # email_form.send_keys('elsp.antipirate@gmail.com')
-                # time.sleep(0.05)
-                # next_button = driver.find_element(By.XPATH, '//*[@id="identifierNext"]/div/button/span')
-                # next_button.click()
-                #
-                # time.sleep(0.05)
-                # WebDriverWait(driver, 20).until(expected_conditions.element_to_be_clickable((By.NAME, "Passwd")))
-                # password_form = driver.find_element(By.NAME, 'Passwd')
-                # password_form.send_keys('legalmusic23')
-                # time.sleep(0.05)
-                #
-                # next_button = driver.find_element(By.XPATH, '//*[@id="passwordNext"]/div/button/span')
-                # next_button.click()
-                #
-                # time.sleep(2)
-                driver.get('https://www.google.com/webmasters/tools/legal-removal-request?hl=en&pid=0&complaint_type=1')
-                first_name = WebDriverWait(driver, 20).until(expected_conditions.presence_of_element_located((By.XPATH,
-                                                                                                              '/html/body/div[1]/root/div/main/chip-form/div/span/gdf-form/form/gdf-container[4]/div/div[2]/gdf-component[1]/gdf-text-input/material-input/label/input')))
-                driver.execute_script('arguments[0].scrollIntoView(true);', first_name)
-                first_name.send_keys('Viacheslav')
-                time.sleep(0.05)
-                last_name = driver.find_element(By.XPATH,
-                                                '/html/body/div[1]/root/div/main/chip-form/div/span/gdf-form/form/gdf-container[4]/div/div[2]/gdf-component[2]/gdf-text-input/material-input/label/input')
-                last_name.send_keys('Sen')
-                time.sleep(0.05)
-                country = driver.find_element(By.XPATH,
-                                              '/html/body/div[1]/root/div/main/chip-form/div/span/gdf-form/form/gdf-container[4]/div/div[2]/gdf-component[3]/gdf-text-input/material-input/label/input')
-                country.send_keys('ELSP Company LLC')
-                time.sleep(0.05)
-                confirm = driver.find_element(By.XPATH,
-                                              '/html/body/div[1]/root/div/main/chip-form/div/span/gdf-form/form/gdf-container[4]/div/div[2]/gdf-component[6]/gdf-checkbox/div/material-checkbox/div[1]/material-ripple').click()
-                time.sleep(0.05)
-                email = driver.find_element(By.XPATH,
-                                            '/html/body/div[1]/root/div/main/chip-form/div/span/gdf-form/form/gdf-container[4]/div/div[2]/gdf-component[7]/gdf-text-input/material-input/label/input')
-                email.send_keys('elspcompany@gmail.com')
-                time.sleep(0.05)
-
-                driver.find_element(By.XPATH,
-                '/html/body/div[1]/root/div/main/chip-form/div/span/gdf-form/form/gdf-container[5]/div/div[2]/gdf-component/gdf-radio-buttons/fieldset/material-radio-group/material-radio[2]/div[1]/material-ripple').click()
-                time.sleep(0.05)
-                text_area_1 = driver.find_element(By.XPATH,
-                                                  '/html/body/div[1]/root/div/main/chip-form/div/span/gdf-form/form/gdf-container[6]/div/div[2]/gdf-container[1]/div/div[2]/gdf-container[1]/div/div[2]/gdf-container[1]/div/div[2]/gdf-component/gdf-textarea/material-input/label/span[2]/textarea')
-                driver.execute_script('arguments[0].scrollIntoView(true);', text_area_1)
-                text_area_1.send_keys(f'Audio work in form of the music track, title: "{obj.music}", exclusively belonging to us')
-                time.sleep(0.05)
-
-                text_area_2 = driver.find_element(By.XPATH,
-                                                  '/html/body/div[1]/root/div/main/chip-form/div/span/gdf-form/form/gdf-container[6]/div/div[2]/gdf-container[1]/div/div[2]/gdf-container[1]/div/div[2]/gdf-container[2]/div/div[2]/gdf-component/gdf-textarea/material-input/label/span[2]/textarea')
-                driver.execute_script('arguments[0].scrollIntoView(true);', text_area_2)
-                #text_area_2.send_keys(f'{obj.music.link}')
-                driver.execute_script(f"arguments[0].value = '{obj.music.link}'", text_area_2)
-                text_area_2.send_keys(Keys.SPACE)
-                text_area_2.send_keys(Keys.BACK_SPACE)
-                time.sleep(0.05)
-
-                text_area_3 = driver.find_element(By.XPATH,
-                                                  '/html/body/div[1]/root/div/main/chip-form/div/span/gdf-form/form/gdf-container[6]/div/div[2]/gdf-container[1]/div/div[2]/gdf-container[2]/div/div[2]/gdf-container/div/div[2]/gdf-component/gdf-textarea/material-input/label/span[2]/textarea')
-                driver.execute_script('arguments[0].scrollIntoView(true);', text_area_3)
-                #text_area_3.send_keys(f'{obj.link}')
-                driver.execute_script(f"arguments[0].value = '{obj.link}'", text_area_3)
-                text_area_3.send_keys(Keys.SPACE)
-                text_area_3.send_keys(Keys.BACK_SPACE)
-                time.sleep(0.05)
-
-                consents = (
-                    driver.find_element(By.XPATH,
-                                        '/html/body/div[1]/root/div/main/chip-form/div/span/gdf-form/form/gdf-container[7]/div/div[2]/gdf-component[1]/gdf-checkbox/div/material-checkbox/div[1]/material-ripple'),
-                    driver.find_element(By.XPATH,
-                                        '/html/body/div[1]/root/div/main/chip-form/div/span/gdf-form/form/gdf-container[7]/div/div[2]/gdf-component[2]/gdf-checkbox/div/material-checkbox/div[1]/material-ripple'),
-                    driver.find_element(By.XPATH,
-                                        '/html/body/div[1]/root/div/main/chip-form/div/span/gdf-form/form/gdf-container[7]/div/div[2]/gdf-component[3]/gdf-checkbox/div/material-checkbox/div[1]/material-ripple')
-                )
-                driver.execute_script('arguments[0].scrollIntoView(true);', consents[0])
-                time.sleep(0.05)
-                for c in consents:
-                    c.click()
-                time.sleep(0.05)
-
-                date = driver.find_elements(By.TAG_NAME, 'dropdown-button')[1].click()
-                time.sleep(1)
-                today = driver.find_element(By.CSS_SELECTOR, 'div.day-slot.visible.today').click()
-                time.sleep(0.05)
-
-                signature = driver.find_element(By.XPATH,
-                                                '/html/body/div[1]/root/div/main/chip-form/div/span/gdf-form/form/gdf-container[8]/div/div[2]/gdf-component[2]/gdf-text-input/material-input/label/input')
-                signature.send_keys('Viacheslav Sen')
-
-                api_call = requests.get(api_str)
-                time.sleep(1)
-                print(api_call.json())
-                api_response_captcha_solver = api_call_loop(api_call.json()["request"])
-                api_response_captcha_solver = api_response_captcha_solver["request"]
-
-                driver.execute_script('document.getElementById("g-recaptcha-response").removeAttribute("style");')
-                time.sleep(0.05)
-                driver.execute_script(
-                    f'document.getElementById("g-recaptcha-response").innerHTML = "{api_response_captcha_solver}";')
-                time.sleep(0.05)
-                try:
-                    driver.execute_script(f'onRecaptcha("{api_response_captcha_solver}");')
-                    print("Captcha solved")
-                except Exception:
-                    driver.execute_script(f'onRecaptcha();')
-
-                time.sleep(1)
-                driver.execute_script("window.focus();")
-                button = driver.find_element(By.XPATH, '/html/body/div[1]/root/div/main/chip-form/div/span/div/button')
-                driver.execute_script("arguments[0].removeAttribute('disabled')", button)
-
-                time.sleep(40)
-
-            finally:
-                driver.quit()
+            send_report_selenium(obj)
+            ReportedLinkModel.objects.create(link=obj.link, domain=obj.domain, music=obj.music)
+            obj.delete()
 
             return HttpResponseRedirect(".")
         return super().response_change(request, obj)
 
     list_display_links = ("link",)
-    actions = (search_music, compare_music)
+    actions = (search_music, compare_music, send_reports)
     readonly_fields = ('music', 'checked', 'music_found', 'music_links', "music_match")
     list_filter = ('music', 'checked', 'music_found', "music_match", "manual_check")
