@@ -12,6 +12,7 @@ fs = FileSystemStorage(location='uploads/source')
 
 class MusicModel(TemporalModel):
     title = models.CharField(max_length=256, unique=True)
+    author = models.CharField(max_length=256, blank=True, null=True)
     link = models.URLField(max_length=1024, unique=True, null=True, verbose_name="sample url", blank=False)
     file = models.FileField(storage=fs, validators=[
         FileExtensionValidator(['mp3', 'aiff', 'wav'],

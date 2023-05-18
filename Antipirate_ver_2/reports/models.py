@@ -12,3 +12,12 @@ class ReportedLinkModel(TemporalModel):
 
     def __str__(self):
         return self.link
+
+    class Meta:
+        verbose_name = 'Reported Link'
+
+
+class FakeLinkModel(ReportedLinkModel):
+    class Meta:
+        verbose_name = 'Fake Link'
+

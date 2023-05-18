@@ -14,7 +14,7 @@ from Antipirate_ver_2.utils.converter import convert_to_mp3
 from Antipirate_ver_2.utils.unwanted_domains import google_domains
 from Antipirate_ver_2.whitelist.models import WhiteListDomain
 from Antipirate_ver_2.links.send_report import send_report_selenium
-from Antipirate_ver_2.reports.models import ReportedLinkModel
+from Antipirate_ver_2.reports.models import ReportedLinkModel, FakeLinkModel
 
 
 @admin.action(description='Check links for music', )
@@ -123,6 +123,14 @@ def send_reports(self, request, queryset):
         print("Program is already running")
 
 
+@admin.action(description='Move fake links', )
+def remove_fake_links(self, request, queryset):
+    fakes = queryset.filter(fake_links=True)
+    for obj in fakes:
+        FakeLinkModel.objects.create(link=obj.link, music=obj.music, domain=obj.domain)
+    fakes.delete()
+
+
 @admin.register(ParsedLink)
 class ParsedLinkAdmin(admin.ModelAdmin):
     list_display = (
@@ -145,6 +153,6 @@ class ParsedLinkAdmin(admin.ModelAdmin):
         return super().response_change(request, obj)
 
     list_display_links = ("link",)
-    actions = (search_music, compare_music, send_reports)
+    actions = (search_music, compare_music, send_reports, remove_fake_links)
     readonly_fields = ('music', 'checked', 'music_found', 'music_links', "music_match")
     list_filter = ('music', 'checked', 'music_found', "music_match", "manual_check")

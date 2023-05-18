@@ -16,6 +16,7 @@ class ParsedLink(TemporalModel):
     music_links = models.TextField(blank=True, null=True)
     manual_check = models.BooleanField(default=False)
     music_match = models.BooleanField(default=False)
+    fake_links = models.BooleanField(default=False)
 
     def __str__(self):
         return self.link

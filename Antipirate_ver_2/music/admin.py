@@ -1,3 +1,4 @@
+import asyncio
 
 from django.contrib import admin
 from django.core.files.storage import FileSystemStorage
@@ -5,7 +6,7 @@ import pandas as pd
 
 
 from Antipirate_ver_2.core.models import Core
-from Antipirate_ver_2.links.parser import GoogleParser
+from Antipirate_ver_2.links.parser import GoogleParser, AsyncParser
 from Antipirate_ver_2.links.services import LinksService
 from Antipirate_ver_2.music.models import MusicModel
 
@@ -47,12 +48,16 @@ def search_google(self, request, queryset):
             core.in_process = True
             core.save(update_fields=('in_process',))
             print("Starting to parse google")
-            songs_list = queryset.values_list('title', flat=True).distinct()
+            #songs_list = queryset.values_list('title', flat=True).distinct()
             phrase = Core.objects.first().additional_phrase
-            for song in songs_list:
-                song_model = MusicModel.objects.get(title=song)
-                query = f'{song} {phrase}' if phrase else f'{song}'
-                LinksService.links_to_db(GoogleParser.scrape_google(query=query), song=song_model)
+            for song in queryset:
+                main_parser = AsyncParser(song)
+                #song_model = MusicModel.objects.get(title=song)
+                query = f'{song.author} {song} {phrase}' if phrase else f'{song.author} {song}'
+                print(query)
+                unfiltered_links = GoogleParser.scrape_google(query=query)
+                filtered_links = asyncio.run(main_parser.main_process(unfiltered_links, deep=True))
+                LinksService.links_to_db(filtered_links, song=song)
             print("Finished")
         finally:
             core.in_process = False
@@ -65,7 +70,7 @@ def search_google(self, request, queryset):
 class MusicModelAdmin(admin.ModelAdmin):
     list_display = (
         "title",
-        "file",
+        "author",
         "created_at"
     )
 

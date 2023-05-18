@@ -10,8 +10,6 @@ from Antipirate_ver_2.links.correlation import correlate
 from Antipirate_ver_2.links.models import ParsedLink
 from Antipirate_ver_2.links.parser import AsyncParser
 from Antipirate_ver_2.utils.converter import convert_to_mp3
-from Antipirate_ver_2.utils.unwanted_domains import google_domains
-from Antipirate_ver_2.whitelist.models import WhiteListDomain
 
 
 class LinksService:
@@ -55,7 +53,7 @@ class LinksService:
             return music
 
     @staticmethod
-    def compare_music_auto(obj, music: dict):
+    def compare_music_auto(obj, music: dict) -> dict:
         count = 0
         matches_count = 0
         initial = {x: len(y) for x, y in music.items()}

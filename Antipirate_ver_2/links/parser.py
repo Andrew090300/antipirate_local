@@ -1,8 +1,10 @@
 import asyncio
 import random
+import re
 import time
 from ssl import SSLCertVerificationError
 from typing import Union
+
 from aiohttp import (
     ClientConnectorSSLError,
     ClientSession,
@@ -34,7 +36,7 @@ class GoogleParser:
             time.sleep(random.randint(1, 3))
 
             response = session.get(url=url,
-                                  # headers=headers
+                                   # headers=headers
                                    )
             return response
 
@@ -47,28 +49,25 @@ class GoogleParser:
         pages = 10 if pages is None else pages
         payload = {
             'q': query,
-         #   'gl': 'ru'
+            #   'gl': 'ru'
         }
         languages = ['en', 'fr', 'pl', 'de', 'ru', 'ua']
         result_links = []
         counter = 1
-       # for lang in languages:
+        # for lang in languages:
         for count in range(0, pages * 10, 10):
             print(f'Google Page {counter} is processed')
-            print(count)
             # payload = {
             #     'q': query,
             #     'hl': lang
             # }
             counter += 1
             payload['start'] = count  # One page is equal to 10 google results.
-            print(payload)
 
             time.sleep(0.01)
             response = GoogleParser.get_source(payload)
             try:
                 links = list(response.html.absolute_links)
-                print(links)
                 for url in links[:]:
                     if url.startswith(google_domains + tuple(WhiteListDomain.objects.values_list(
                             'domain', flat=True).distinct())):
@@ -76,12 +75,13 @@ class GoogleParser:
                 result_links.extend(links)
             except AttributeError as e:
                 print(e)
-           # print(result_links)
+        # print(result_links)
         return list(set(result_links))
 
 
 class AsyncParser:
-    def __init__(self):
+    def __init__(self, song):
+        self.song = song
         self.limiter = AsyncLimiter(1, 0.125)
         self.headers = {'User-Agent': random.choice(user_agent.user_agent)}
         self.links = []
@@ -89,12 +89,16 @@ class AsyncParser:
         self.music_count = 0
         self.all_music = {}
         self.whitelist = google_domains + tuple(WhiteListDomain.objects.values_list(
-                            'domain', flat=True).distinct())
+            'domain', flat=True).distinct())
         self.performance_time = time.perf_counter()  # To be removed in production
 
-    def get_data(self, html_text: bytes, parsed_url: str, deep) -> list:
+    def get_data(self, html_text: bytes, parsed_url: str, deep: bool, *args, **kwargs) -> list:
         soup = BeautifulSoup(html_text, 'lxml', parse_only=SoupStrainer('a', href=True))
         link_obj = soup.find_all('a')
+        occurrences_song = soup.find_all(text=re.compile(fr'{self.song}', re.IGNORECASE))
+        occurrences_author = soup.find_all(text=re.compile(fr'{self.song.author}', re.IGNORECASE))
+        if len(occurrences_song) and len(occurrences_author):
+            self.links.append(parsed_url)
 
         # Links generator
         def gen():
@@ -122,13 +126,12 @@ class AsyncParser:
                     self.all_music[parsed_url] = []
                 self.all_music[parsed_url].append(abs_link)
                 print(f'Total Music Count: {self.music_count}')
-            if not deep:
-                self.links.append(abs_link)
+                self.links.append(parsed_url)
+                #self.links.append(abs_link)
 
         # TODO Remove print in production
         print(f'Total links found: {len(self.links)}')
-        if not deep:
-            return self.links
+        return self.links
 
     async def get_links(self, url: str, semaphore: asyncio.Semaphore, deep) -> Union[list, None]:
         async with ClientSession(headers=self.headers) as session:
@@ -155,7 +158,7 @@ class AsyncParser:
                         asyncio.exceptions.TimeoutError) as e:
                     print(e)
 
-    async def main_process(self, array: list, deep: bool) -> dict:
+    async def main_process(self, array: list, deep: bool) -> Union[dict, iter]:
         tasks = []
         semaphore = asyncio.Semaphore(value=10)
         for item in array:
@@ -171,3 +174,6 @@ class AsyncParser:
         print(f"Execution time: {elapsed:0.2f} seconds.")
         if not deep:
             return self.all_music
+        else:
+            return self.links
+

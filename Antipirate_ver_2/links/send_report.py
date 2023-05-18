@@ -1,5 +1,8 @@
 import time
+
+from selenium import webdriver
 from selenium.webdriver import Keys
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
 import undetected_chromedriver as uc
@@ -20,12 +23,19 @@ def api_call_loop(api_response):
 
 
 def send_report_selenium(obj):
-    options = uc.ChromeOptions()
-    userdatadir = '~/.config/google-chrome/Profile 7'
+    # options = uc.ChromeOptions()
+    options = Options()
+
+    userdatadir = "/home/andrew/.config/google-chrome/Profile 7"
+    print(userdatadir)
     options.add_argument(f"--user-data-dir={userdatadir}")
+    print(options._arguments)
     options.arguments.extend(["--no-sandbox", "--disable-setuid-sandbox"])
-    driver = uc.Chrome(options, headless=False,
-                       executable_path="/home/andrew/PycharmProjects/pythonProject1/driver/chromedriver")
+    driver = webdriver.Chrome(executable_path="/home/andrew/PycharmProjects/pythonProject1/driver/chromedriver",
+                              options=options)
+    driver.get('https://www.google.com')
+    # driver = uc.Chrome(options, headless=True,
+    #                    executable_path="/home/andrew/PycharmProjects/pythonProject1/driver/chromedriver")
     api_str = 'http://2captcha.com/in.php?key=2d426bb5162a1e697572a5e8c3126f2e&method=userrecaptcha&googlekey=6LeVK0AhAAAAAAM8ccCAZcaNBQbJQ-iZiZQxyG4h&json=1&pageurl=https://reportcontent.google.com/forms/dmca_search?hl=en&utm_source=wmx&utm_medium=deprecation-pane&utm_content=legal-removal-request'
 
     try:
