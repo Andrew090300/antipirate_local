@@ -153,6 +153,11 @@ class ParsedLinkAdmin(admin.ModelAdmin):
         return super().response_change(request, obj)
 
     list_display_links = ("link",)
-    actions = (search_music, compare_music, send_reports, remove_fake_links)
+    actions = (
+        # search_music,
+        # compare_music,
+        # send_reports,
+        remove_fake_links,
+    )
     readonly_fields = ('music', 'checked', 'music_found', 'music_links', "music_match")
     list_filter = ('music', 'checked', 'music_found', "music_match", "manual_check")

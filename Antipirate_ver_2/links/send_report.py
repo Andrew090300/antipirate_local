@@ -24,16 +24,30 @@ def api_call_loop(api_response):
 
 def send_report_selenium(obj):
     # options = uc.ChromeOptions()
-    options = Options()
+    options = webdriver.ChromeOptions()
+    options.add_argument("--no-sandbox")
+    user_data_dir = "/home/andrew/.config/google-chrome"  # Pointing to the main user data directory
+    profile_directory = "Profile 7"  # The specific profile folder
 
-    userdatadir = "/home/andrew/.config/google-chrome/Profile 7"
-    print(userdatadir)
-    options.add_argument(f"--user-data-dir={userdatadir}")
-    print(options._arguments)
-    options.arguments.extend(["--no-sandbox", "--disable-setuid-sandbox"])
-    driver = webdriver.Chrome(executable_path="/home/andrew/PycharmProjects/pythonProject1/driver/chromedriver",
-                              options=options)
+    options.add_argument(r"--user-data-dir=/home/andrew/.config/google-chrome")
+    options.add_argument(r"--profile-directory=Profile 7")
+    # options.add_argument("--disable-gpu")
+    # options.add_argument("--no-sandbox")
+    # options.add_argument("--disable-setuid-sandbox")
+    # options.add_argument("--remote-debugging-port=9222")
+    #options.add_argument('--headless')
+
+    options.binary_location = "/usr/bin/google-chrome"
+    # Start the driver
+    driver = webdriver.Chrome(
+        #executable_path='/home/andrew/chromedriver/chromedriver',
+        options=options)
+    time.sleep(2)
+
     driver.get('https://www.google.com')
+    time.sleep(2)
+    driver.save_screenshot("screenshot.png")
+
     # driver = uc.Chrome(options, headless=True,
     #                    executable_path="/home/andrew/PycharmProjects/pythonProject1/driver/chromedriver")
     api_str = 'http://2captcha.com/in.php?key=2d426bb5162a1e697572a5e8c3126f2e&method=userrecaptcha&googlekey=6LeVK0AhAAAAAAM8ccCAZcaNBQbJQ-iZiZQxyG4h&json=1&pageurl=https://reportcontent.google.com/forms/dmca_search?hl=en&utm_source=wmx&utm_medium=deprecation-pane&utm_content=legal-removal-request'
@@ -69,6 +83,7 @@ def send_report_selenium(obj):
         driver.execute_script('arguments[0].scrollIntoView(true);', text_area_1)
         text_area_1.send_keys(f'Audio work in form of the music track, title: "{obj.music}", exclusively belonging to us')
         time.sleep(0.05)
+        driver.save_screenshot("screenshot22.png")
 
         text_area_2 = driver.find_element(By.XPATH,
                                           '/html/body/div[1]/root/div/main/chip-form/div/span/gdf-form/form/gdf-container[6]/div/div[2]/gdf-container[1]/div/div[2]/gdf-container[1]/div/div[2]/gdf-container[2]/div/div[2]/gdf-component/gdf-textarea/material-input/label/span[2]/textarea')
@@ -127,6 +142,7 @@ def send_report_selenium(obj):
             print("Captcha solved")
         except Exception:
             driver.execute_script(f'onRecaptcha();')
+        driver.save_screenshot("screenshot33.png")
 
         time.sleep(1)
         driver.execute_script("window.focus();")

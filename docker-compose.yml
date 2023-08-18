@@ -1,0 +1,36 @@
+version: '3.3'
+
+services:
+
+  db:
+    image: postgres:12-alpine
+    container_name: db
+    ports:
+      - "5432:5432"
+    networks:
+      - main
+    env_file:
+      - .env.dev
+    volumes:
+      - ./data/postgresql:/var/lib/postgresql/data
+
+  web:
+    container_name: web
+    build:
+      context: .
+    command: >
+      sh -c "python3 manage.py migrate &&
+             python3 manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/backend
+    ports:
+      - "8000:8000"
+    networks:
+      - main
+    depends_on:
+      - db
+    env_file:
+      - .env.dev
+
+networks:
+  main:

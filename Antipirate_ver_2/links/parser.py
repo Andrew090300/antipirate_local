@@ -176,4 +176,3 @@ class AsyncParser:
             return self.all_music
         else:
             return self.links
-

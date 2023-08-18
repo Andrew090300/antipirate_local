@@ -16,7 +16,7 @@ class Core(TemporalModel):
     title = models.CharField(max_length=128, default='Program Core')
     pages_number = models.IntegerField(null=True, blank=True)
     is_running = models.BooleanField(default=False)
-    parse_period = models.CharField(max_length=128, choices=PeriodChoices.choices, default=PeriodChoices.ONCE_A_DAY)
+   # parse_period = models.CharField(max_length=128, choices=PeriodChoices.choices, default=PeriodChoices.ONCE_A_DAY)
     additional_phrase = models.CharField(max_length=128, blank=True, null=True)
     in_process = models.BooleanField(default=False)
 

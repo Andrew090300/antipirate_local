@@ -57,6 +57,7 @@ def search_google(self, request, queryset):
                 print(query)
                 unfiltered_links = GoogleParser.scrape_google(query=query)
                 filtered_links = asyncio.run(main_parser.main_process(unfiltered_links, deep=True))
+                print(filtered_links)
                 LinksService.links_to_db(filtered_links, song=song)
             print("Finished")
         finally:
